@@ -42,11 +42,19 @@ Before deploying, run these SQL migrations in your Supabase SQL editor:
 
 ### 4. Copy Required Files
 
-Make sure these files are accessible (or copy them to the assignment directory):
-- `../04_general_participant_information_and_information_on_data_protection_participants.pdf`
-- `../05_consent_form_participants.pdf`
-- `../University-of-Tubingen-01.png`
-- `../UNC_logo.avif`
+**Option A: Copy files to assignment directory (Recommended for deployment)**
+
+Copy these files from the parent directory into `infer-study-assignment/`:
+- `04_general_participant_information_and_information_on_data_protection_participants.pdf`
+- `05_consent_form_participants.pdf`
+- `University-of-Tubingen-01.png`
+- `UNC_logo.avif`
+
+Then update `index.html` to remove the `../` prefix from the file paths.
+
+**Option B: Keep files in parent directory**
+
+If files stay in the parent directory, update paths in `index.html` to point to the correct location (e.g., use absolute URLs or relative paths that work from your deployment).
 
 ## Deployment
 
