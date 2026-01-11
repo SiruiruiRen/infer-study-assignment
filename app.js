@@ -16,14 +16,19 @@ const STUDY_GROUP_URLS = {
 
 // ============================================================================
 
-let supabase = null;
+let supabaseClient = null;
 
 // Initialize Supabase
 function initSupabase() {
     try {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        console.log('✅ Supabase initialized');
-        return supabase;
+        if (typeof window.supabase !== 'undefined') {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            console.log('✅ Supabase initialized');
+            return supabaseClient;
+        } else {
+            console.error('❌ Supabase library not loaded');
+            return null;
+        }
     } catch (error) {
         console.error('❌ Error initializing Supabase:', error);
         return null;
@@ -78,14 +83,14 @@ function randomAssignGroup() {
 
 // Check if student is already assigned (case-insensitive)
 async function checkExistingAssignment(studentId) {
-    if (!supabase) return null;
+    if (!supabaseClient) return null;
     
     // Normalize student ID to uppercase for consistent matching
     const normalizedId = studentId.trim().toUpperCase();
     
     try {
         // Query with exact match (student_id is stored in uppercase)
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('student_assignments')
             .select('*')
             .eq('student_id', normalizedId)  // Exact match (already normalized to uppercase)
@@ -129,7 +134,7 @@ function storeAssignment(studentId, assignment) {
 
 // Create or get assignment (robust version with case-insensitive matching)
 async function getOrCreateAssignment(studentId, anonymousId) {
-    if (!supabase) {
+    if (!supabaseClient) {
         showAlert('Database connection error. Please refresh the page.', 'danger');
         return null;
     }
@@ -163,7 +168,7 @@ async function getOrCreateAssignment(studentId, anonymousId) {
     const treatmentGroup = randomAssignGroup();
     
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('student_assignments')
             .insert([{
                 student_id: normalizedId,  // Store in uppercase for consistency
@@ -305,7 +310,7 @@ function setupAssignmentForm() {
             const studentId = studentIdInput?.value.trim();
             const anonymousId = anonymousIdInput?.value.trim();
             
-            if (studentId && anonymousId && supabase) {
+            if (studentId && anonymousId && supabaseClient) {
                 const normalizedId = studentId.toUpperCase();
                 // Check localStorage first (fast)
                 const stored = getStoredAssignment(normalizedId);
@@ -412,7 +417,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('Initializing INFER Assignment Website...');
     
     // Initialize Supabase
-    supabase = initSupabase();
+    supabaseClient = initSupabase();
     
     // Check if returning user (skip consent if already assigned)
     const isReturning = await checkReturningUser();
