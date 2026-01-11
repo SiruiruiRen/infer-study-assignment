@@ -300,26 +300,45 @@ function setupAssignmentForm() {
     if (studentIdInput) {
         studentIdInput.addEventListener('input', updateSubmitButton);
         
-        // Check for existing assignment when student ID is entered
-        studentIdInput.addEventListener('blur', async () => {
+        // Check for existing assignment when both fields are filled
+        const checkForExistingAssignment = async () => {
             const studentId = studentIdInput?.value.trim();
-            if (studentId) {
+            const anonymousId = anonymousIdInput?.value.trim();
+            
+            if (studentId && anonymousId && supabase) {
                 const normalizedId = studentId.toUpperCase();
+                // Check localStorage first (fast)
                 const stored = getStoredAssignment(normalizedId);
                 if (stored && stored.treatment_group) {
-                    // Show message that they're already assigned
-                    if (assignmentMessage) {
-                        const groupNames = {
-                            'treatment_1': 'Group Alpha (INFER + Tutorial)',
-                            'treatment_2': 'Group Beta (INFER Only)',
-                            'control': 'Group Gamma (Simple Feedback)'
-                        };
-                        assignmentMessage.textContent = `You are already assigned to: ${groupNames[stored.treatment_group] || stored.treatment_group}. Click "Continue to Study" to proceed.`;
+                    // Verify in database
+                    const dbAssignment = await checkExistingAssignment(normalizedId);
+                    if (dbAssignment) {
+                        // Show message that they're already assigned
+                        if (assignmentMessage) {
+                            const groupNames = {
+                                'treatment_1': 'Group Alpha (INFER + Tutorial)',
+                                'treatment_2': 'Group Beta (INFER Only)',
+                                'control': 'Group Gamma (Simple Feedback)'
+                            };
+                            assignmentMessage.textContent = `You are already assigned to: ${groupNames[dbAssignment.treatment_group] || dbAssignment.treatment_group}. Click "Continue to Study" to proceed.`;
+                        }
+                        if (assignmentInfo) assignmentInfo.classList.remove('d-none');
+                        // Enable submit button
+                        if (submitBtn) submitBtn.disabled = false;
+                        return dbAssignment;
                     }
-                    if (assignmentInfo) assignmentInfo.classList.remove('d-none');
                 }
             }
-        });
+            return null;
+        };
+        
+        // Check when both fields are filled
+        if (studentIdInput) {
+            studentIdInput.addEventListener('blur', checkForExistingAssignment);
+        }
+        if (anonymousIdInput) {
+            anonymousIdInput.addEventListener('blur', checkForExistingAssignment);
+        }
     }
     
     if (anonymousIdInput) {
@@ -359,8 +378,13 @@ function setupAssignmentForm() {
                     'control': 'Group Gamma (Simple Feedback)'
                 };
                 
+                const isReturning = getStoredAssignment(studentId.toUpperCase()) !== null;
+                const message = isReturning 
+                    ? `You are already assigned to: ${groupNames[assignment.treatment_group] || assignment.treatment_group}. Redirecting to your study site...`
+                    : `You have been assigned to: ${groupNames[assignment.treatment_group] || assignment.treatment_group}. Redirecting to your study site...`;
+                
                 if (assignmentMessage) {
-                    assignmentMessage.textContent = `You have been assigned to: ${groupNames[assignment.treatment_group] || assignment.treatment_group}`;
+                    assignmentMessage.textContent = message;
                 }
                 if (assignmentInfo) assignmentInfo.classList.remove('d-none');
                 
