@@ -155,6 +155,8 @@ function randomAssignGroup() {
 }
 
 // Check if student is already assigned (case-insensitive)
+// IMPORTANT: Assignment is based ONLY on student_id, NOT anonymous_id
+// This ensures the same student always gets the same group, even if they change their anonymous ID
 async function checkExistingAssignment(studentId) {
     if (!supabaseClient) return null;
     
@@ -163,10 +165,11 @@ async function checkExistingAssignment(studentId) {
     
     try {
         // Query with exact match (student_id is stored in uppercase)
+        // NOTE: We only query by student_id, NOT anonymous_id
         const { data, error } = await supabaseClient
             .from('student_assignments')
             .select('*')
-            .eq('student_id', normalizedId)  // Exact match (already normalized to uppercase)
+            .eq('student_id', normalizedId)  // Assignment based ONLY on student_id
             .single();
         
         if (error && error.code !== 'PGRST116') {  // PGRST116 = no rows returned
@@ -238,14 +241,16 @@ async function getOrCreateAssignment(studentId, anonymousId) {
     }
     
     // Create new assignment with random group
+    // NOTE: Assignment is based ONLY on student_id (unique constraint)
+    // anonymous_id is stored for reference but NOT used for assignment matching
     const treatmentGroup = randomAssignGroup();
     
     try {
         const { data, error } = await supabaseClient
             .from('student_assignments')
             .insert([{
-                student_id: normalizedId,  // Store in uppercase for consistency
-                anonymous_id: normalizedAnonymousId,
+                student_id: normalizedId,  // PRIMARY KEY for assignment - determines group
+                anonymous_id: normalizedAnonymousId,  // Stored but NOT used for assignment matching
                 treatment_group: treatmentGroup
             }])
             .select()
