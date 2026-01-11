@@ -76,15 +76,19 @@ function randomAssignGroup() {
     return groups[randomIndex];
 }
 
-// Check if student is already assigned
+// Check if student is already assigned (case-insensitive)
 async function checkExistingAssignment(studentId) {
     if (!supabase) return null;
     
+    // Normalize student ID to uppercase for consistent matching
+    const normalizedId = studentId.trim().toUpperCase();
+    
     try {
+        // Query with exact match (student_id is stored in uppercase)
         const { data, error } = await supabase
             .from('student_assignments')
             .select('*')
-            .eq('student_id', studentId)
+            .eq('student_id', normalizedId)  // Exact match (already normalized to uppercase)
             .single();
         
         if (error && error.code !== 'PGRST116') {  // PGRST116 = no rows returned
@@ -99,18 +103,59 @@ async function checkExistingAssignment(studentId) {
     }
 }
 
-// Create or get assignment
+// Check localStorage for existing assignment (for returning users)
+function getStoredAssignment(studentId) {
+    try {
+        const normalizedId = studentId.trim().toUpperCase();
+        const stored = localStorage.getItem(`assignment_${normalizedId}`);
+        if (stored) {
+            return JSON.parse(stored);
+        }
+    } catch (error) {
+        console.error('Error reading stored assignment:', error);
+    }
+    return null;
+}
+
+// Store assignment in localStorage
+function storeAssignment(studentId, assignment) {
+    try {
+        const normalizedId = studentId.trim().toUpperCase();
+        localStorage.setItem(`assignment_${normalizedId}`, JSON.stringify(assignment));
+    } catch (error) {
+        console.error('Error storing assignment:', error);
+    }
+}
+
+// Create or get assignment (robust version with case-insensitive matching)
 async function getOrCreateAssignment(studentId, anonymousId) {
     if (!supabase) {
         showAlert('Database connection error. Please refresh the page.', 'danger');
         return null;
     }
     
-    // Check if already assigned
-    const existing = await checkExistingAssignment(studentId);
+    // Normalize student ID to uppercase for consistent storage and matching
+    const normalizedId = studentId.trim().toUpperCase();
+    const normalizedAnonymousId = anonymousId.trim().toUpperCase();
+    
+    // First check localStorage (fast, for returning users)
+    const stored = getStoredAssignment(normalizedId);
+    if (stored && stored.treatment_group) {
+        console.log('Found stored assignment:', stored);
+        // Verify it still exists in database
+        const dbAssignment = await checkExistingAssignment(normalizedId);
+        if (dbAssignment) {
+            return dbAssignment;
+        }
+    }
+    
+    // Check database for existing assignment (case-insensitive)
+    const existing = await checkExistingAssignment(normalizedId);
     
     if (existing) {
-        console.log('Found existing assignment:', existing);
+        console.log('Found existing assignment in database:', existing);
+        // Store in localStorage for faster future access
+        storeAssignment(normalizedId, existing);
         return existing;
     }
     
@@ -121,20 +166,31 @@ async function getOrCreateAssignment(studentId, anonymousId) {
         const { data, error } = await supabase
             .from('student_assignments')
             .insert([{
-                student_id: studentId,
-                anonymous_id: anonymousId,
+                student_id: normalizedId,  // Store in uppercase for consistency
+                anonymous_id: normalizedAnonymousId,
                 treatment_group: treatmentGroup
             }])
             .select()
             .single();
         
         if (error) {
+            // If error is due to duplicate (race condition), try to fetch existing
+            if (error.code === '23505') {  // Unique violation
+                console.log('Duplicate detected, fetching existing assignment...');
+                const existing = await checkExistingAssignment(normalizedId);
+                if (existing) {
+                    storeAssignment(normalizedId, existing);
+                    return existing;
+                }
+            }
             console.error('Error creating assignment:', error);
             showAlert('Error creating assignment. Please try again.', 'danger');
             return null;
         }
         
         console.log('Created new assignment:', data);
+        // Store in localStorage for faster future access
+        storeAssignment(normalizedId, data);
         return data;
     } catch (error) {
         console.error('Error in getOrCreateAssignment:', error);
@@ -200,6 +256,29 @@ function setupConsentForm() {
     }
 }
 
+// Check if user is returning (has assignment stored)
+async function checkReturningUser() {
+    // Check URL parameters first (if redirected from assignment)
+    const urlParams = new URLSearchParams(window.location.search);
+    const studentIdParam = urlParams.get('student_id');
+    
+    if (studentIdParam) {
+        const normalizedId = studentIdParam.trim().toUpperCase();
+        const stored = getStoredAssignment(normalizedId);
+        if (stored && stored.treatment_group) {
+            // Verify in database
+            const dbAssignment = await checkExistingAssignment(normalizedId);
+            if (dbAssignment) {
+                console.log('Returning user detected, redirecting...');
+                redirectToStudySite(dbAssignment.treatment_group);
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
 // Handle ID assignment form
 function setupAssignmentForm() {
     const studentIdInput = document.getElementById('student-id-input');
@@ -220,6 +299,27 @@ function setupAssignmentForm() {
     
     if (studentIdInput) {
         studentIdInput.addEventListener('input', updateSubmitButton);
+        
+        // Check for existing assignment when student ID is entered
+        studentIdInput.addEventListener('blur', async () => {
+            const studentId = studentIdInput?.value.trim();
+            if (studentId) {
+                const normalizedId = studentId.toUpperCase();
+                const stored = getStoredAssignment(normalizedId);
+                if (stored && stored.treatment_group) {
+                    // Show message that they're already assigned
+                    if (assignmentMessage) {
+                        const groupNames = {
+                            'treatment_1': 'Group Alpha (INFER + Tutorial)',
+                            'treatment_2': 'Group Beta (INFER Only)',
+                            'control': 'Group Gamma (Simple Feedback)'
+                        };
+                        assignmentMessage.textContent = `You are already assigned to: ${groupNames[stored.treatment_group] || stored.treatment_group}. Click "Continue to Study" to proceed.`;
+                    }
+                    if (assignmentInfo) assignmentInfo.classList.remove('d-none');
+                }
+            }
+        });
     }
     
     if (anonymousIdInput) {
@@ -267,9 +367,10 @@ function setupAssignmentForm() {
                 // Hide loading
                 if (loadingSpinner) loadingSpinner.classList.add('d-none');
                 
-                // Wait a moment, then redirect
+                // Wait a moment, then redirect with student ID in URL for study site
                 setTimeout(() => {
-                    redirectToStudySite(assignment.treatment_group);
+                    const redirectUrl = `${STUDY_GROUP_URLS[assignment.treatment_group]}?student_id=${encodeURIComponent(assignment.student_id)}&anonymous_id=${encodeURIComponent(assignment.anonymous_id)}`;
+                    window.location.href = redirectUrl;
                 }, 2000);
                 
             } catch (error) {
@@ -283,11 +384,17 @@ function setupAssignmentForm() {
 }
 
 // Initialize app
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('Initializing INFER Assignment Website...');
     
     // Initialize Supabase
     supabase = initSupabase();
+    
+    // Check if returning user (skip consent if already assigned)
+    const isReturning = await checkReturningUser();
+    if (isReturning) {
+        return; // Will redirect, so don't setup forms
+    }
     
     // Setup event listeners
     setupConsentForm();
