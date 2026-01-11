@@ -17,6 +17,79 @@ const STUDY_GROUP_URLS = {
 // ============================================================================
 
 let supabaseClient = null;
+let currentLanguage = 'de'; // Default to German
+
+// Language translations
+const translations = {
+    en: {
+        title: "INFER",
+        subtitle: "An intelligent feedback system for observing classroom videos",
+        welcome_to_infer_study: "Welcome to INFER Study",
+        welcome_message: "Thank you for participating in this study on AI-supported teaching reflection. The site is open from February 1 to March 31. We recommend that you complete one video each week, so that you have enough time for spaced practice.",
+        browser_recommendation: "For the best experience, we recommend using <strong>Google Chrome</strong>.",
+        data_protection_header: "Data Protection Information",
+        data_protection_intro: "Please read the data protection information document below.",
+        open_data_protection_doc: "Open Data Protection Document",
+        data_protection_checkbox: "I have read and understood the data protection information document.",
+        data_consent_header: "Consent for Scientific Use",
+        data_consent_intro: "Please read the consent form below and indicate whether you consent to the use of your anonymized data for scientific purposes.",
+        open_consent_form: "Open Consent Form",
+        data_consent_agree: "I agree to the use of my anonymized data for scientific purposes.",
+        data_consent_disagree: "I do not agree to the use of my anonymized data for scientific purposes.",
+        consent_disagreement_message: "You can still participate in the experiment. However, only data from participants who gave consent will be used for scientific purposes.",
+        continue_button: "Continue",
+        study_assignment: "Study Assignment",
+        enter_your_information: "Enter Your Information",
+        student_id_label: "Student ID:",
+        student_id_placeholder: "Enter your student ID",
+        participant_code_label: "Anonymous ID (Participant Code):",
+        code_placeholder: "e.g., ER04LF09",
+        anonymous_id_help: "Generate from: First letter of mother's first name + first letter of mother's last name + birth day (2 digits) + first letter of father's first name + first letter of father's last name + birth month (2 digits). <br>Example: Elke-Hannelore Müller, Wolf-Rüdiger Müller, born 09.11.1987 → ER04LF09",
+        loading: "Loading...",
+        assigning_group: "Assigning you to a study group...",
+        continue_to_study: "Continue to Study",
+        group_alpha: "Group Alpha (INFER + Tutorial)",
+        group_beta: "Group Beta (INFER Only)",
+        group_gamma: "Group Gamma (Simple Feedback)",
+        already_assigned: "You are already assigned to: {group}. Click \"Continue to Study\" to proceed.",
+        assigned_to: "You have been assigned to: {group}. Redirecting to your study site...",
+        redirecting: "Redirecting to your study site..."
+    },
+    de: {
+        title: "INFER",
+        subtitle: "Ein intelligentes Feedback-System zur Beobachtung von Unterricht",
+        welcome_to_infer_study: "Willkommen zur INFER-Studie",
+        welcome_message: "Vielen Dank für Ihre Teilnahme an dieser Studie zur KI-gestützten Unterrichtsreflexion. Die Website ist vom 1. Februar bis 31. März geöffnet. Wir empfehlen, dass Sie ein Video pro Woche abschließen, damit Sie genügend Zeit für verteiltes Üben haben.",
+        browser_recommendation: "Für die beste Erfahrung empfehlen wir die Verwendung von <strong>Google Chrome</strong>.",
+        data_protection_header: "Datenschutzhinweise",
+        data_protection_intro: "Bitte lesen Sie das unten stehende Datenschutzdokument.",
+        open_data_protection_doc: "Datenschutzdokument öffnen",
+        data_protection_checkbox: "Ich habe die Datenschutzhinweise gelesen und verstanden.",
+        data_consent_header: "Einverständniserklärung für wissenschaftliche Nutzung",
+        data_consent_intro: "Bitte lesen Sie das unten stehende Einverständnisformular und geben Sie an, ob Sie der Verwendung Ihrer anonymisierten Daten für wissenschaftliche Zwecke zustimmen.",
+        open_consent_form: "Einverständnisformular öffnen",
+        data_consent_agree: "Ich stimme der Verwendung meiner anonymisierten Daten für wissenschaftliche Zwecke zu.",
+        data_consent_disagree: "Ich stimme der Verwendung meiner anonymisierten Daten für wissenschaftliche Zwecke nicht zu.",
+        consent_disagreement_message: "Sie können weiterhin am Experiment teilnehmen. Allerdings werden nur Daten von Teilnehmern verwendet, die ihre Einwilligung gegeben haben.",
+        continue_button: "Weiter",
+        study_assignment: "Studienzuweisung",
+        enter_your_information: "Geben Sie Ihre Informationen ein",
+        student_id_label: "Studenten-ID:",
+        student_id_placeholder: "Geben Sie Ihre Studenten-ID ein",
+        participant_code_label: "Anonyme ID (Teilnehmer-Code):",
+        code_placeholder: "z.B. ER04LF09",
+        anonymous_id_help: "Erstellen aus: Erster Buchstabe des Vornamens der Mutter + erster Buchstabe des Nachnamens der Mutter + Geburtstag (2 Ziffern) + erster Buchstabe des Vornamens des Vaters + erster Buchstabe des Nachnamens des Vaters + Geburtsmonat (2 Ziffern). <br>Beispiel: Elke-Hannelore Müller, Wolf-Rüdiger Müller, geboren 09.11.1987 → ER04LF09",
+        loading: "Laden...",
+        assigning_group: "Sie werden einer Studiengruppe zugewiesen...",
+        continue_to_study: "Zur Studie fortfahren",
+        group_alpha: "Gruppe Alpha (INFER + Tutorial)",
+        group_beta: "Gruppe Beta (nur INFER)",
+        group_gamma: "Gruppe Gamma (einfaches Feedback)",
+        already_assigned: "Sie sind bereits zugewiesen: {group}. Klicken Sie auf \"Zur Studie fortfahren\", um fortzufahren.",
+        assigned_to: "Sie wurden zugewiesen: {group}. Weiterleitung zu Ihrer Studienseite...",
+        redirecting: "Weiterleitung zu Ihrer Studienseite..."
+    }
+};
 
 // Initialize Supabase
 function initSupabase() {
@@ -320,12 +393,9 @@ function setupAssignmentForm() {
                     if (dbAssignment) {
                         // Show message that they're already assigned
                         if (assignmentMessage) {
-                            const groupNames = {
-                                'treatment_1': 'Group Alpha (INFER + Tutorial)',
-                                'treatment_2': 'Group Beta (INFER Only)',
-                                'control': 'Group Gamma (Simple Feedback)'
-                            };
-                            assignmentMessage.textContent = `You are already assigned to: ${groupNames[dbAssignment.treatment_group] || dbAssignment.treatment_group}. Click "Continue to Study" to proceed.`;
+                            const t = translations[currentLanguage];
+                            const groupName = getGroupName(dbAssignment.treatment_group);
+                            assignmentMessage.textContent = t.already_assigned.replace('{group}', groupName);
                         }
                         if (assignmentInfo) assignmentInfo.classList.remove('d-none');
                         // Enable submit button
@@ -377,16 +447,12 @@ function setupAssignmentForm() {
                 }
                 
                 // Show assignment info
-                const groupNames = {
-                    'treatment_1': 'Group Alpha (INFER + Tutorial)',
-                    'treatment_2': 'Group Beta (INFER Only)',
-                    'control': 'Group Gamma (Simple Feedback)'
-                };
-                
+                const t = translations[currentLanguage];
+                const groupName = getGroupName(assignment.treatment_group);
                 const isReturning = getStoredAssignment(studentId.toUpperCase()) !== null;
                 const message = isReturning 
-                    ? `You are already assigned to: ${groupNames[assignment.treatment_group] || assignment.treatment_group}. Redirecting to your study site...`
-                    : `You have been assigned to: ${groupNames[assignment.treatment_group] || assignment.treatment_group}. Redirecting to your study site...`;
+                    ? t.already_assigned.replace('{group}', groupName) + ' ' + t.redirecting
+                    : t.assigned_to.replace('{group}', groupName);
                 
                 if (assignmentMessage) {
                     assignmentMessage.textContent = message;
@@ -412,6 +478,111 @@ function setupAssignmentForm() {
     }
 }
 
+// Language switching functions
+function renderLanguageSwitchers() {
+    const containers = document.querySelectorAll('.language-switcher-container');
+    containers.forEach(container => {
+        container.innerHTML = `
+            <div class="btn-group" role="group" style="display: flex; justify-content: center;">
+                <button type="button" class="btn ${currentLanguage === 'en' ? 'btn-primary' : 'btn-outline-primary'}" id="lang-switch-en">English</button>
+                <button type="button" class="btn ${currentLanguage === 'de' ? 'btn-primary' : 'btn-outline-primary'}" id="lang-switch-de">Deutsch</button>
+            </div>
+        `;
+    });
+    
+    // Add event listeners
+    document.getElementById('lang-switch-en')?.addEventListener('click', () => switchLanguage('en'));
+    document.getElementById('lang-switch-de')?.addEventListener('click', () => switchLanguage('de'));
+}
+
+function switchLanguage(lang) {
+    currentLanguage = lang;
+    renderLanguageSwitchers();
+    applyTranslations();
+}
+
+function applyTranslations() {
+    const t = translations[currentLanguage];
+    if (!t) return;
+    
+    // Update all elements with data-lang-key-placeholder attribute (for placeholders)
+    document.querySelectorAll('[data-lang-key-placeholder]').forEach(element => {
+        const key = element.getAttribute('data-lang-key-placeholder');
+        if (t[key]) {
+            element.placeholder = t[key];
+        }
+    });
+    
+    // Update all elements with data-lang-key attribute
+    document.querySelectorAll('[data-lang-key]').forEach(element => {
+        const key = element.getAttribute('data-lang-key');
+        if (t[key]) {
+            // For buttons with spans inside, update the span
+            if (element.tagName === 'BUTTON' && element.querySelector('span[data-lang-key]')) {
+                const span = element.querySelector('span[data-lang-key]');
+                if (span) {
+                    if (t[key].includes('<') && t[key].includes('>')) {
+                        span.innerHTML = t[key];
+                    } else {
+                        span.textContent = t[key];
+                    }
+                }
+            }
+            // For links with spans inside
+            else if (element.tagName === 'A' && element.querySelector('span[data-lang-key]')) {
+                const span = element.querySelector('span[data-lang-key]');
+                if (span) {
+                    if (t[key].includes('<') && t[key].includes('>')) {
+                        span.innerHTML = t[key];
+                    } else {
+                        span.textContent = t[key];
+                    }
+                }
+            }
+            // For span elements directly - use innerHTML to preserve HTML tags
+            else if (element.tagName === 'SPAN' || element.tagName === 'SMALL') {
+                if (t[key].includes('<') && t[key].includes('>')) {
+                    element.innerHTML = t[key];
+                } else {
+                    element.textContent = t[key];
+                }
+            }
+            // For input elements, check if they should have placeholder updated
+            else if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                if (element.type === 'text' || element.type === 'textarea' || element.tagName === 'TEXTAREA') {
+                    if (key.includes('placeholder') || key.includes('reflection') || key.includes('paste')) {
+                        element.placeholder = t[key];
+                    } else {
+                        element.value = t[key];
+                    }
+                } else {
+                    element.value = t[key];
+                }
+            }
+            // For other elements, update text content directly
+            else {
+                // Use innerHTML for elements that might contain HTML
+                if (t[key].includes('<') && t[key].includes('>')) {
+                    element.innerHTML = t[key];
+                } else {
+                    element.textContent = t[key];
+                }
+            }
+        }
+    });
+}
+
+// Get translated group name
+function getGroupName(treatmentGroup) {
+    const t = translations[currentLanguage];
+    const groupMap = {
+        'treatment_1': t.group_alpha,
+        'treatment_2': t.group_beta,
+        'control': t.group_gamma
+    };
+    return groupMap[treatmentGroup] || treatmentGroup;
+}
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Initializing INFER Assignment Website...');
@@ -428,6 +599,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Setup event listeners
     setupConsentForm();
     setupAssignmentForm();
+    
+    // Initialize language system
+    renderLanguageSwitchers();
+    applyTranslations();
     
     console.log('✅ Assignment website initialized');
 });
