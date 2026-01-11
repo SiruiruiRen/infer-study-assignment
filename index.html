@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INFER Study Assignment</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="alert-container"></div>
+    
+    <!-- Page 1: Welcome & Consent -->
+    <div id="page-welcome" class="page-container">
+        <div class="main-container">
+            <div class="header-full-width">
+                <div class="main-container">
+                    <div class="row align-items-center position-relative">
+                        <div class="col-md-4 d-flex align-items-center">
+                            <img src="../University-of-Tubingen-01.png" alt="University of Tübingen" style="height: 50px; margin-right: 15px;">
+                            <img src="../UNC_logo.avif" alt="UNC Logo" style="height: 30px;">
+                        </div>
+                        <div class="col-md-8 text-center d-flex flex-column justify-content-center position-absolute" style="left: 50%; transform: translateX(-50%); width: auto;">
+                            <h1 class="mb-0">INFER</h1>
+                            <p class="mb-0">An intelligent feedback system for observing classroom videos</p>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-center justify-content-end"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row justify-content-center mt-5">
+                <div class="col-md-10">
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h3 class="mb-3">Welcome to INFER Study</h3>
+                            <p>Thank you for participating in this study on AI-supported teaching reflection. The site is open from February 1 to March 31. We recommend that you complete one video each week, so that you have enough time for spaced practice.</p>
+                            
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <span>For the best experience, we recommend using <strong>Google Chrome</strong>.</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Data Protection Document (Mandatory Checkbox) -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Data Protection Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Please read the data protection information document below.</p>
+                            
+                            <div class="mb-3">
+                                <a href="../04_general_participant_information_and_information_on_data_protection_participants.pdf" target="_blank" class="btn btn-outline-primary mb-3">
+                                    <i class="bi bi-file-earmark-pdf me-2"></i>Open Data Protection Document
+                                </a>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="data-protection-read" required>
+                                    <label class="form-check-label" for="data-protection-read">
+                                        I have read and understood the data protection information document.
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Consent for Scientific Use (Mandatory Radio Buttons) -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Consent for Scientific Use</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Please read the consent form below and indicate whether you consent to the use of your anonymized data for scientific purposes.</p>
+                            
+                            <div class="mb-3">
+                                <a href="../05_consent_form_participants.pdf" target="_blank" class="btn btn-outline-primary mb-3">
+                                    <i class="bi bi-file-earmark-pdf me-2"></i>Open Consent Form
+                                </a>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="data-consent" id="data-consent-agree" value="agree" required>
+                                    <label class="form-check-label" for="data-consent-agree">
+                                        I agree to the use of my anonymized data for scientific purposes.
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="data-consent" id="data-consent-disagree" value="disagree" required>
+                                    <label class="form-check-label" for="data-consent-disagree">
+                                        I do not agree to the use of my anonymized data for scientific purposes.
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div id="consent-disagreement-message" class="alert alert-info d-none">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <span>You can still participate in the experiment. However, only data from participants who gave consent will be used for scientific purposes.</span>
+                            </div>
+                            
+                            <div class="text-center mt-4">
+                                <button id="continue-to-id" class="btn btn-primary btn-lg" disabled>
+                                    <i class="bi bi-arrow-right me-2"></i>
+                                    Continue
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 2: ID Collection & Assignment -->
+    <div id="page-id-assignment" class="page-container d-none">
+        <div class="main-container">
+            <div class="header-full-width">
+                <div class="main-container">
+                    <div class="row align-items-center position-relative">
+                        <div class="col-md-4 d-flex align-items-center">
+                            <img src="../University-of-Tubingen-01.png" alt="University of Tübingen" style="height: 50px; margin-right: 15px;">
+                            <img src="../UNC_logo.avif" alt="UNC Logo" style="height: 30px;">
+                        </div>
+                        <div class="col-md-8 text-center d-flex flex-column justify-content-center position-absolute" style="left: 50%; transform: translateX(-50%); width: auto;">
+                            <h1 class="mb-0">INFER</h1>
+                            <p class="mb-0">Study Assignment</p>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-center justify-content-end"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row justify-content-center mt-5">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header text-center">
+                            <h4>Enter Your Information</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="student-id-input" class="form-label">Student ID:</label>
+                                <input type="text" class="form-control" id="student-id-input" placeholder="Enter your student ID" maxlength="50" autofocus required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="anonymous-id-input" class="form-label">Anonymous ID (Participant Code):</label>
+                                <input type="text" class="form-control" id="anonymous-id-input" placeholder="e.g., ER04LF09" maxlength="20" required>
+                                <small class="form-text text-muted">
+                                    Generate from: First letter of mother's first name + first letter of mother's last name + birth day (2 digits) + first letter of father's first name + first letter of father's last name + birth month (2 digits). 
+                                    <br>Example: Elke-Hannelore Müller, Wolf-Rüdiger Müller, born 09.11.1987 → ER04LF09
+                                </small>
+                            </div>
+                            
+                            <div id="assignment-info" class="alert alert-info d-none">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <span id="assignment-message"></span>
+                            </div>
+                            
+                            <div id="loading-spinner" class="text-center d-none">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Assigning you to a study group...</p>
+                            </div>
+                            
+                            <button id="submit-assignment" class="btn btn-primary btn-lg w-100" disabled>
+                                <i class="bi bi-check-circle me-2"></i>
+                                Continue to Study
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+</body>
+</html>
