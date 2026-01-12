@@ -147,11 +147,71 @@ function showPage(pageId) {
     }
 }
 
-// Randomly assign to one of three groups
-function randomAssignGroup() {
-    const groups = ['treatment_1', 'treatment_2', 'control'];
-    const randomIndex = Math.floor(Math.random() * groups.length);
-    return groups[randomIndex];
+// Balanced assignment: assign to group with fewest members
+async function randomAssignGroup() {
+    if (!supabaseClient) {
+        // Fallback to random if no database connection
+        const groups = ['treatment_1', 'treatment_2', 'control'];
+        const randomIndex = Math.floor(Math.random() * groups.length);
+        return groups[randomIndex];
+    }
+    
+    try {
+        // Get current distribution of groups
+        const { data, error } = await supabaseClient
+            .from('student_assignments')
+            .select('treatment_group');
+        
+        if (error) {
+            console.error('Error getting group distribution:', error);
+            // Fallback to random
+            const groups = ['treatment_1', 'treatment_2', 'control'];
+            const randomIndex = Math.floor(Math.random() * groups.length);
+            return groups[randomIndex];
+        }
+        
+        // Count students in each group
+        const groupCounts = {
+            'treatment_1': 0,
+            'treatment_2': 0,
+            'control': 0
+        };
+        
+        if (data) {
+            data.forEach(assignment => {
+                if (assignment.treatment_group && groupCounts.hasOwnProperty(assignment.treatment_group)) {
+                    groupCounts[assignment.treatment_group]++;
+                }
+            });
+        }
+        
+        // Find group(s) with minimum count
+        const minCount = Math.min(
+            groupCounts['treatment_1'],
+            groupCounts['treatment_2'],
+            groupCounts['control']
+        );
+        
+        const groupsWithMinCount = [];
+        if (groupCounts['treatment_1'] === minCount) groupsWithMinCount.push('treatment_1');
+        if (groupCounts['treatment_2'] === minCount) groupsWithMinCount.push('treatment_2');
+        if (groupCounts['control'] === minCount) groupsWithMinCount.push('control');
+        
+        // If multiple groups have the same minimum count, randomly choose one
+        const randomIndex = Math.floor(Math.random() * groupsWithMinCount.length);
+        const selectedGroup = groupsWithMinCount[randomIndex];
+        
+        console.log('Group distribution:', groupCounts);
+        console.log('Assigning to:', selectedGroup, '(min count:', minCount + ')');
+        
+        return selectedGroup;
+    } catch (error) {
+        console.error('Error in balanced assignment:', error);
+        // Fallback to random
+        const groups = ['treatment_1', 'treatment_2', 'control'];
+        const randomIndex = Math.floor(Math.random() * groups.length);
+        return groups[randomIndex];
+    }
 }
 
 // Check if student is already assigned (case-insensitive)
@@ -240,10 +300,10 @@ async function getOrCreateAssignment(studentId, anonymousId) {
         return existing;
     }
     
-    // Create new assignment with random group
+    // Create new assignment with balanced group assignment
     // NOTE: Assignment is based ONLY on student_id (unique constraint)
     // anonymous_id is stored for reference but NOT used for assignment matching
-    const treatmentGroup = randomAssignGroup();
+    const treatmentGroup = await randomAssignGroup();
     
     try {
         const { data, error } = await supabaseClient
