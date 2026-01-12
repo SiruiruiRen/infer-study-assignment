@@ -282,13 +282,45 @@ async function getOrCreateAssignment(studentId, anonymousId) {
     }
 }
 
+// Update consent choice in database
+async function updateConsentChoice(studentId, consentChoice) {
+    if (!supabaseClient) return;
+    
+    try {
+        const normalizedId = studentId.trim().toUpperCase();
+        const { error } = await supabaseClient
+            .from('student_assignments')
+            .update({ consent_choice: consentChoice })
+            .eq('student_id', normalizedId);
+        
+        if (error) {
+            console.error('Error updating consent choice:', error);
+        } else {
+            console.log('Consent choice updated:', consentChoice);
+        }
+    } catch (error) {
+        console.error('Error in updateConsentChoice:', error);
+    }
+}
+
 // Redirect to appropriate study site
-function redirectToStudySite(treatmentGroup) {
+function redirectToStudySite(treatmentGroup, studentId = null, anonymousId = null) {
     const url = STUDY_GROUP_URLS[treatmentGroup];
     if (!url) {
         showAlert('Invalid study group. Please contact the administrator.', 'danger');
         return;
     }
+    
+    // Add student ID and anonymous ID to URL if provided
+    let redirectUrl = url;
+    if (studentId && anonymousId) {
+        redirectUrl = `${url}?student_id=${encodeURIComponent(studentId)}&anonymous_id=${encodeURIComponent(anonymousId)}`;
+    }
+    
+    // Wait a moment, then redirect
+    setTimeout(() => {
+        window.location.href = redirectUrl;
+    }, 2000);
     
     // Redirect to the study site
     window.location.href = url;
@@ -333,8 +365,44 @@ function setupConsentForm() {
     }
     
     if (continueBtn) {
-        continueBtn.addEventListener('click', () => {
-            showPage('page-id-assignment');
+        continueBtn.addEventListener('click', async () => {
+            // Get consent choice
+            const consentChoice = consentAgree?.checked ? 'agree' : (consentDisagree?.checked ? 'disagree' : null);
+            
+            if (!consentChoice) {
+                showAlert('Please select a consent option.', 'warning');
+                return;
+            }
+            
+            // Get student ID from ID page (stored in sessionStorage or get from assignment)
+            const studentIdInput = document.getElementById('student-id-input');
+            let studentId = studentIdInput?.value.trim();
+            let anonymousId = document.getElementById('anonymous-id-input')?.value.trim();
+            
+            // If not in inputs, try to get from sessionStorage (from ID page)
+            if (!studentId) {
+                const storedAssignment = sessionStorage.getItem('pending_assignment');
+                if (storedAssignment) {
+                    const assignment = JSON.parse(storedAssignment);
+                    studentId = assignment.student_id;
+                    anonymousId = assignment.anonymous_id;
+                }
+            }
+            
+            // Store consent choice
+            if (studentId && consentChoice && supabaseClient) {
+                await updateConsentChoice(studentId.toUpperCase(), consentChoice);
+            }
+            
+            // Redirect to study site
+            if (studentId && anonymousId) {
+                const assignment = await getOrCreateAssignment(studentId, anonymousId);
+                if (assignment) {
+                    redirectToStudySite(assignment.treatment_group, assignment.student_id, assignment.anonymous_id);
+                }
+            } else {
+                showAlert('Please go back and enter your student ID first.', 'warning');
+            }
         });
     }
 }
@@ -467,11 +535,29 @@ function setupAssignmentForm() {
                 // Hide loading
                 if (loadingSpinner) loadingSpinner.classList.add('d-none');
                 
-                // Wait a moment, then redirect with student ID in URL for study site
-                setTimeout(() => {
-                    const redirectUrl = `${STUDY_GROUP_URLS[assignment.treatment_group]}?student_id=${encodeURIComponent(assignment.student_id)}&anonymous_id=${encodeURIComponent(assignment.anonymous_id)}`;
-                    window.location.href = redirectUrl;
-                }, 2000);
+                // After assignment, show consent page
+                showPage('page-welcome');
+                
+                // Load existing consent choice if available
+                if (assignment.consent_choice) {
+                    const consentAgree = document.getElementById('data-consent-agree');
+                    const consentDisagree = document.getElementById('data-consent-disagree');
+                    const dataProtectionCheckbox = document.getElementById('data-protection-read');
+                    
+                    if (assignment.consent_choice === 'agree' && consentAgree) {
+                        consentAgree.checked = true;
+                    } else if (assignment.consent_choice === 'disagree' && consentDisagree) {
+                        consentDisagree.checked = true;
+                    }
+                    
+                    if (dataProtectionCheckbox) {
+                        dataProtectionCheckbox.checked = true;
+                    }
+                    
+                    // Update continue button state
+                    const continueBtn = document.getElementById('continue-to-id');
+                    if (continueBtn) continueBtn.disabled = false;
+                }
                 
             } catch (error) {
                 console.error('Error in assignment:', error);
@@ -601,9 +687,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         return; // Will redirect, so don't setup forms
     }
     
-    // Setup event listeners
-    setupConsentForm();
+    // Setup event listeners (ID page first, then consent)
     setupAssignmentForm();
+    setupConsentForm();
     
     // Initialize language system
     renderLanguageSwitchers();
