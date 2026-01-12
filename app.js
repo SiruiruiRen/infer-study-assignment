@@ -48,11 +48,8 @@ const translations = {
         loading: "Loading...",
         assigning_group: "Assigning you to a study group...",
         continue_to_study: "Continue to Study",
-        group_alpha: "Group Alpha",
-        group_beta: "Group Beta",
-        group_gamma: "Group Gamma",
-        already_assigned: "You are already assigned to: {group}. Click \"Continue to Study\" to proceed.",
-        assigned_to: "You have been assigned to: {group}. Redirecting to your study site...",
+        already_assigned: "You are already registered. Click \"Continue to Study\" to proceed.",
+        assigned_to: "Redirecting to your study site...",
         redirecting: "Redirecting to your study site..."
     },
     de: {
@@ -82,11 +79,8 @@ const translations = {
         loading: "Laden...",
         assigning_group: "Sie werden einer Studiengruppe zugewiesen...",
         continue_to_study: "Zur Studie fortfahren",
-        group_alpha: "Gruppe Alpha",
-        group_beta: "Gruppe Beta",
-        group_gamma: "Gruppe Gamma",
-        already_assigned: "Sie sind bereits zugewiesen: {group}. Klicken Sie auf \"Zur Studie fortfahren\", um fortzufahren.",
-        assigned_to: "Sie wurden zugewiesen: {group}. Weiterleitung zu Ihrer Studienseite...",
+        already_assigned: "Sie sind bereits registriert. Klicken Sie auf \"Zur Studie fortfahren\", um fortzufahren.",
+        assigned_to: "Weiterleitung zu Ihrer Studienseite...",
         redirecting: "Weiterleitung zu Ihrer Studienseite..."
     }
 };
@@ -524,11 +518,10 @@ function setupAssignmentForm() {
                     // Verify in database
                     const dbAssignment = await checkExistingAssignment(normalizedId);
                     if (dbAssignment) {
-                        // Show message that they're already assigned
+                        // Show message that they're already assigned (without revealing group)
                         if (assignmentMessage) {
                             const t = translations[currentLanguage];
-                            const groupName = getGroupName(dbAssignment.treatment_group);
-                            assignmentMessage.textContent = t.already_assigned.replace('{group}', groupName);
+                            assignmentMessage.textContent = t.already_assigned;
                         }
                         if (assignmentInfo) assignmentInfo.classList.remove('d-none');
                         // Enable submit button
@@ -579,13 +572,12 @@ function setupAssignmentForm() {
                     return;
                 }
                 
-                // Show assignment info
+                // Show assignment info (without revealing group)
                 const t = translations[currentLanguage];
-                const groupName = getGroupName(assignment.treatment_group);
                 const isReturning = getStoredAssignment(studentId.toUpperCase()) !== null;
                 const message = isReturning 
-                    ? t.already_assigned.replace('{group}', groupName) + ' ' + t.redirecting
-                    : t.assigned_to.replace('{group}', groupName);
+                    ? t.already_assigned + ' ' + t.redirecting
+                    : t.assigned_to;
                 
                 if (assignmentMessage) {
                     assignmentMessage.textContent = message;
@@ -723,16 +715,7 @@ function applyTranslations() {
     });
 }
 
-// Get translated group name
-function getGroupName(treatmentGroup) {
-    const t = translations[currentLanguage];
-    const groupMap = {
-        'treatment_1': t.group_alpha,
-        'treatment_2': t.group_beta,
-        'control': t.group_gamma
-    };
-    return groupMap[treatmentGroup] || treatmentGroup;
-}
+// Note: getGroupName function removed - we no longer reveal group information to students
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
