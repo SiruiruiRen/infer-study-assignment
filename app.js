@@ -595,8 +595,8 @@ function setupAssignmentForm() {
                 // Hide loading
                 if (loadingSpinner) loadingSpinner.classList.add('d-none');
                 
-                // After assignment, show consent page
-                showPage('page-welcome');
+                // After assignment, show consent page (page-id-assignment contains consent forms)
+                showPage('page-id-assignment');
                 
                 // Load existing consent choice if available
                 if (assignment.consent_choice) {
@@ -740,6 +740,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Initialize Supabase
     supabaseClient = initSupabase();
+    
+    // Show ID page first (page-welcome)
+    showPage('page-welcome');
     
     // Check if returning user (skip consent if already assigned)
     const isReturning = await checkReturningUser();
