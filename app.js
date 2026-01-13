@@ -289,6 +289,29 @@ async function getOrCreateAssignment(studentId, anonymousId) {
     
     if (existing) {
         console.log('Found existing assignment in database:', existing);
+        
+        // If anonymous_id changed, update it in the database (assignment stays the same)
+        if (existing.anonymous_id !== normalizedAnonymousId) {
+            console.log(`Anonymous ID changed from ${existing.anonymous_id} to ${normalizedAnonymousId}, updating...`);
+            try {
+                const { data: updated, error: updateError } = await supabaseClient
+                    .from('student_assignments')
+                    .update({ anonymous_id: normalizedAnonymousId })
+                    .eq('student_id', normalizedId)
+                    .select()
+                    .single();
+                
+                if (updateError) {
+                    console.error('Error updating anonymous_id:', updateError);
+                } else {
+                    console.log('Updated anonymous_id in database:', updated);
+                    existing.anonymous_id = normalizedAnonymousId; // Update local object
+                }
+            } catch (error) {
+                console.error('Error updating anonymous_id:', error);
+            }
+        }
+        
         // Store in localStorage for faster future access
         storeAssignment(normalizedId, existing);
         return existing;
