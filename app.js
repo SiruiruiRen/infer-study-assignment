@@ -624,18 +624,28 @@ function setupAssignmentForm() {
 // Language switching functions
 function renderLanguageSwitchers() {
     const containers = document.querySelectorAll('.language-switcher-container');
-    containers.forEach(container => {
+    containers.forEach((container, index) => {
+        // Use unique IDs for each container to avoid conflicts
+        const enId = `lang-switch-en-${index}`;
+        const deId = `lang-switch-de-${index}`;
+        
         container.innerHTML = `
             <div class="btn-group" role="group" style="display: flex; justify-content: center;">
-                <button type="button" class="btn ${currentLanguage === 'en' ? 'btn-primary' : 'btn-outline-primary'}" id="lang-switch-en">English</button>
-                <button type="button" class="btn ${currentLanguage === 'de' ? 'btn-primary' : 'btn-outline-primary'}" id="lang-switch-de">Deutsch</button>
+                <button type="button" class="btn ${currentLanguage === 'en' ? 'btn-primary' : 'btn-outline-primary'}" id="${enId}">English</button>
+                <button type="button" class="btn ${currentLanguage === 'de' ? 'btn-primary' : 'btn-outline-primary'}" id="${deId}">Deutsch</button>
             </div>
         `;
+        
+        // Add event listeners to each button immediately after creating them
+        const enButton = document.getElementById(enId);
+        const deButton = document.getElementById(deId);
+        if (enButton) {
+            enButton.addEventListener('click', () => switchLanguage('en'));
+        }
+        if (deButton) {
+            deButton.addEventListener('click', () => switchLanguage('de'));
+        }
     });
-    
-    // Add event listeners
-    document.getElementById('lang-switch-en')?.addEventListener('click', () => switchLanguage('en'));
-    document.getElementById('lang-switch-de')?.addEventListener('click', () => switchLanguage('de'));
 }
 
 function switchLanguage(lang) {
