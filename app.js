@@ -50,7 +50,11 @@ const translations = {
         continue_to_study: "Continue to Study",
         already_assigned: "You are already registered. Click \"Continue to Study\" to proceed.",
         assigned_to: "Redirecting to your study site...",
-        redirecting: "Redirecting to your study site..."
+        redirecting: "Redirecting to your study site...",
+        previous_anonymous_id_found: "We found a previous anonymous ID for this student ID:",
+        anonymous_id_mismatch_warning: "The anonymous ID you entered doesn't match the one we have on record. We'll update it with your new entry.",
+        use_previous_id: "Use Previous ID",
+        keep_new_id: "Keep New ID"
     },
     de: {
         title: "INFER",
@@ -81,7 +85,11 @@ const translations = {
         continue_to_study: "Zur Studie fortfahren",
         already_assigned: "Sie sind bereits registriert. Klicken Sie auf \"Zur Studie fortfahren\", um fortzufahren.",
         assigned_to: "Weiterleitung zu Ihrer Studienseite...",
-        redirecting: "Weiterleitung zu Ihrer Studienseite..."
+        redirecting: "Weiterleitung zu Ihrer Studienseite...",
+        previous_anonymous_id_found: "Wir haben eine vorherige anonyme ID für diese Studenten-ID gefunden:",
+        anonymous_id_mismatch_warning: "Die eingegebene anonyme ID stimmt nicht mit der in unserer Datenbank überein. Wir aktualisieren sie mit Ihrem neuen Eintrag.",
+        use_previous_id: "Vorherige ID verwenden",
+        keep_new_id: "Neue ID behalten"
     }
 };
 
@@ -394,13 +402,10 @@ function redirectToStudySite(treatmentGroup, studentId = null, anonymousId = nul
         redirectUrl = `${url}?student_id=${encodeURIComponent(studentId)}&anonymous_id=${encodeURIComponent(anonymousId)}`;
     }
     
-    // Wait a moment, then redirect
+    // Wait a moment to show the message, then redirect with URL parameters
     setTimeout(() => {
         window.location.href = redirectUrl;
     }, 2000);
-    
-    // Redirect to the study site
-    window.location.href = url;
 }
 
 // Handle consent form
@@ -528,6 +533,49 @@ function setupAssignmentForm() {
     if (studentIdInput) {
         studentIdInput.addEventListener('input', updateSubmitButton);
         
+        // Check for existing assignment and hint for anonymous_id when student_id is entered
+        const checkForStudentId = async () => {
+            const studentId = studentIdInput?.value.trim();
+            
+            if (studentId && supabaseClient) {
+                const normalizedId = studentId.toUpperCase();
+                const dbAssignment = await checkExistingAssignment(normalizedId);
+                
+                if (dbAssignment && dbAssignment.anonymous_id) {
+                    // Show hint for previous anonymous_id
+                    const hintDiv = document.getElementById('anonymous-id-hint');
+                    const hintMessage = document.getElementById('anonymous-id-hint-message');
+                    const usePreviousBtn = document.getElementById('use-previous-id-btn');
+                    const t = translations[currentLanguage];
+                    
+                    if (hintDiv && hintMessage) {
+                        hintMessage.textContent = `${t.previous_anonymous_id_found} ${dbAssignment.anonymous_id}`;
+                        hintDiv.classList.remove('d-none');
+                        
+                        // Show button to use previous ID
+                        if (usePreviousBtn) {
+                            usePreviousBtn.style.display = 'inline-block';
+                            usePreviousBtn.onclick = () => {
+                                if (anonymousIdInput) {
+                                    anonymousIdInput.value = dbAssignment.anonymous_id;
+                                    updateSubmitButton();
+                                    hintDiv.classList.add('d-none');
+                                }
+                            };
+                        }
+                    }
+                } else {
+                    // Hide hint if no previous record
+                    const hintDiv = document.getElementById('anonymous-id-hint');
+                    if (hintDiv) hintDiv.classList.add('d-none');
+                }
+            } else {
+                // Hide hint if no student_id
+                const hintDiv = document.getElementById('anonymous-id-hint');
+                if (hintDiv) hintDiv.classList.add('d-none');
+            }
+        };
+        
         // Check for existing assignment when both fields are filled
         const checkForExistingAssignment = async () => {
             const studentId = studentIdInput?.value.trim();
@@ -535,12 +583,32 @@ function setupAssignmentForm() {
             
             if (studentId && anonymousId && supabaseClient) {
                 const normalizedId = studentId.toUpperCase();
+                const normalizedAnonymousId = anonymousId.toUpperCase();
+                
                 // Check localStorage first (fast)
                 const stored = getStoredAssignment(normalizedId);
                 if (stored && stored.treatment_group) {
                     // Verify in database
                     const dbAssignment = await checkExistingAssignment(normalizedId);
                     if (dbAssignment) {
+                        // Check if anonymous_id matches
+                        if (dbAssignment.anonymous_id && 
+                            dbAssignment.anonymous_id.toUpperCase() !== normalizedAnonymousId) {
+                            // Show warning about mismatch
+                            const warningDiv = document.getElementById('anonymous-id-warning');
+                            const warningMessage = document.getElementById('anonymous-id-warning-message');
+                            const t = translations[currentLanguage];
+                            
+                            if (warningDiv && warningMessage) {
+                                warningMessage.textContent = t.anonymous_id_mismatch_warning;
+                                warningDiv.classList.remove('d-none');
+                            }
+                        } else {
+                            // Hide warning if they match
+                            const warningDiv = document.getElementById('anonymous-id-warning');
+                            if (warningDiv) warningDiv.classList.add('d-none');
+                        }
+                        
                         // Show message that they're already assigned (without revealing group)
                         if (assignmentMessage) {
                             const t = translations[currentLanguage];
@@ -551,17 +619,53 @@ function setupAssignmentForm() {
                         if (submitBtn) submitBtn.disabled = false;
                         return dbAssignment;
                     }
+                } else {
+                    // Check database directly
+                    const dbAssignment = await checkExistingAssignment(normalizedId);
+                    if (dbAssignment) {
+                        // Check if anonymous_id matches
+                        if (dbAssignment.anonymous_id && 
+                            dbAssignment.anonymous_id.toUpperCase() !== normalizedAnonymousId) {
+                            // Show warning about mismatch
+                            const warningDiv = document.getElementById('anonymous-id-warning');
+                            const warningMessage = document.getElementById('anonymous-id-warning-message');
+                            const t = translations[currentLanguage];
+                            
+                            if (warningDiv && warningMessage) {
+                                warningMessage.textContent = t.anonymous_id_mismatch_warning;
+                                warningDiv.classList.remove('d-none');
+                            }
+                        }
+                        
+                        // Show message that they're already assigned
+                        if (assignmentMessage) {
+                            const t = translations[currentLanguage];
+                            assignmentMessage.textContent = t.already_assigned;
+                        }
+                        if (assignmentInfo) assignmentInfo.classList.remove('d-none');
+                        if (submitBtn) submitBtn.disabled = false;
+                        return dbAssignment;
+                    }
                 }
             }
+            
+            // Hide warning if no match found
+            const warningDiv = document.getElementById('anonymous-id-warning');
+            if (warningDiv) warningDiv.classList.add('d-none');
             return null;
         };
         
+        // Check for student_id hint when student_id field loses focus
+        studentIdInput.addEventListener('blur', checkForStudentId);
+        
         // Check when both fields are filled
-        if (studentIdInput) {
-            studentIdInput.addEventListener('blur', checkForExistingAssignment);
-        }
         if (anonymousIdInput) {
             anonymousIdInput.addEventListener('blur', checkForExistingAssignment);
+            anonymousIdInput.addEventListener('input', () => {
+                // Hide warning when user starts typing
+                const warningDiv = document.getElementById('anonymous-id-warning');
+                if (warningDiv) warningDiv.classList.add('d-none');
+            });
         }
     }
     
