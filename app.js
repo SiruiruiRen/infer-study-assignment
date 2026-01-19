@@ -97,7 +97,21 @@ const translations = {
 function initSupabase() {
     try {
         if (typeof window.supabase !== 'undefined') {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            // Create Supabase client with proper configuration
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                auth: {
+                    persistSession: false  // Don't persist auth session for assignment site
+                },
+                db: {
+                    schema: 'public'
+                },
+                global: {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            });
             console.log('✅ Supabase initialized');
             return supabaseClient;
         } else {
@@ -162,7 +176,7 @@ async function randomAssignGroup() {
         // Get current distribution of groups
         const { data, error } = await supabaseClient
             .from('student_assignments')
-            .select('treatment_group');
+            .select('treatment_group', { count: 'exact' });  // Add count option
         
         if (error) {
             console.error('Error getting group distribution:', error);
@@ -235,7 +249,7 @@ async function checkExistingAssignment(studentId) {
         // Use maybeSingle() instead of single() to handle empty results gracefully
         const { data, error } = await supabaseClient
             .from('student_assignments')
-            .select('*')
+            .select('*', { count: 'exact' })  // Add count option for better error handling
             .eq('student_id', normalizedId)  // Assignment based ONLY on student_id
             .maybeSingle();  // Use maybeSingle() to avoid error when no rows found
         
