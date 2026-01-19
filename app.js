@@ -577,6 +577,7 @@ async function checkReturningUser() {
     // Check URL parameters first (if redirected from assignment)
     const urlParams = new URLSearchParams(window.location.search);
     const studentIdParam = urlParams.get('student_id');
+    const anonymousIdParam = urlParams.get('anonymous_id');
     
     if (studentIdParam) {
         const normalizedId = studentIdParam.trim().toUpperCase();
@@ -586,7 +587,12 @@ async function checkReturningUser() {
             const dbAssignment = await checkExistingAssignment(normalizedId);
             if (dbAssignment) {
                 console.log('Returning user detected, redirecting...');
-                redirectToStudySite(dbAssignment.treatment_group);
+                // Pass both student_id and anonymous_id to redirect function
+                redirectToStudySite(
+                    dbAssignment.treatment_group, 
+                    dbAssignment.student_id || normalizedId,
+                    dbAssignment.anonymous_id || anonymousIdParam
+                );
                 return true;
             }
         }
