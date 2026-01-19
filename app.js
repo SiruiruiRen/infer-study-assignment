@@ -910,6 +910,41 @@ function switchLanguage(lang) {
     currentLanguage = lang;
     renderLanguageSwitchers();
     applyTranslations();
+    
+    // Update hint message if it's visible
+    const hintDiv = document.getElementById('anonymous-id-hint');
+    const hintMessage = document.getElementById('anonymous-id-hint-message');
+    if (hintDiv && hintMessage && !hintDiv.classList.contains('d-none')) {
+        // Re-check student ID to update hint message with new language
+        const studentIdInput = document.getElementById('student-id-input');
+        if (studentIdInput && studentIdInput.value.trim()) {
+            // Trigger the check again to update the hint message
+            setTimeout(() => {
+                const checkForStudentId = async () => {
+                    const studentId = studentIdInput.value.trim();
+                    if (studentId && supabaseClient) {
+                        const normalizedId = studentId.toUpperCase();
+                        let dbAssignment = null;
+                        try {
+                            dbAssignment = await checkExistingAssignment(normalizedId);
+                        } catch (error) {
+                            console.warn('Error checking assignment for hint:', error);
+                            const stored = getStoredAssignment(normalizedId);
+                            if (stored && stored.anonymous_id) {
+                                dbAssignment = stored;
+                            }
+                        }
+                        
+                        if (dbAssignment && dbAssignment.anonymous_id) {
+                            const t = translations[currentLanguage];
+                            hintMessage.textContent = `${t.previous_anonymous_id_found} ${dbAssignment.anonymous_id}`;
+                        }
+                    }
+                };
+                checkForStudentId();
+            }, 100);
+        }
+    }
 }
 
 function applyTranslations() {
