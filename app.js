@@ -313,7 +313,7 @@ async function getOrCreateAssignment(studentId, anonymousId) {
     // First check localStorage (fast, for returning users)
     const stored = getStoredAssignment(normalizedId);
     if (stored && stored.treatment_group) {
-        console.log('Found stored assignment:', stored);
+        // Found stored assignment (don't log to avoid exposing group assignment)
         // Try to verify it still exists in database, but don't fail if query fails
         try {
             const dbAssignment = await checkExistingAssignment(normalizedId);
@@ -435,7 +435,7 @@ async function getOrCreateAssignment(studentId, anonymousId) {
             throw error;  // Re-throw if no fallback available
         }
         
-        console.log('Created new assignment:', data);
+        // Created new assignment (don't log to avoid exposing group assignment)
         // Store in localStorage for faster future access
         storeAssignment(normalizedId, data);
         return data;
@@ -586,7 +586,7 @@ async function checkReturningUser() {
             // Verify in database
             const dbAssignment = await checkExistingAssignment(normalizedId);
             if (dbAssignment) {
-                console.log('Returning user detected, redirecting...');
+                // Returning user detected, redirecting to correct site
                 // Pass both student_id and anonymous_id to redirect function
                 redirectToStudySite(
                     dbAssignment.treatment_group, 
@@ -716,6 +716,16 @@ function setupAssignmentForm() {
                             if (warningDiv) warningDiv.classList.add('d-none');
                         }
                         
+                        // Auto-redirect to correct site if already assigned (don't show group info)
+                        if (dbAssignment.treatment_group) {
+                            redirectToStudySite(
+                                dbAssignment.treatment_group,
+                                dbAssignment.student_id || normalizedId,
+                                dbAssignment.anonymous_id || normalizedAnonymousId
+                            );
+                            return dbAssignment;
+                        }
+                        
                         // Show message that they're already assigned (without revealing group)
                         if (assignmentMessage) {
                             const t = translations[currentLanguage];
@@ -752,6 +762,16 @@ function setupAssignmentForm() {
                                 warningMessage.textContent = t.anonymous_id_mismatch_warning;
                                 warningDiv.classList.remove('d-none');
                             }
+                        }
+                        
+                        // Auto-redirect to correct site if already assigned (don't show group info)
+                        if (dbAssignment.treatment_group) {
+                            redirectToStudySite(
+                                dbAssignment.treatment_group,
+                                dbAssignment.student_id || normalizedId,
+                                dbAssignment.anonymous_id || normalizedAnonymousId
+                            );
+                            return dbAssignment;
                         }
                         
                         // Show message that they're already assigned
