@@ -51,7 +51,7 @@ const translations = {
         already_assigned: "You are already registered. Click \"Continue to Study\" to proceed.",
         assigned_to: "Redirecting to your study site...",
         redirecting: "Redirecting to your study site...",
-        previous_anonymous_id_found: "We found a previous anonymous ID for this student ID:",
+        previous_anonymous_id_found: "You have previously entered an anonymous ID for this student ID. Please enter the same anonymous ID as your first login to maintain consistency.",
         anonymous_id_mismatch_warning: "You have previously logged into this system with a different anonymous ID. Please enter the correct anonymous ID to access your dashboard.",
         use_previous_id: "Use Previous ID",
         keep_new_id: "Keep New ID"
@@ -86,7 +86,7 @@ const translations = {
         already_assigned: "Sie sind bereits registriert. Klicken Sie auf \"Zur Studie fortfahren\", um fortzufahren.",
         assigned_to: "Weiterleitung zu Ihrer Studienseite...",
         redirecting: "Weiterleitung zu Ihrer Studienseite...",
-        previous_anonymous_id_found: "Wir haben eine vorherige anonyme ID für diese Studenten-ID gefunden:",
+        previous_anonymous_id_found: "Sie haben zuvor bereits eine anonyme ID für diese Studenten-ID eingegeben. Bitte geben Sie dieselbe anonyme ID wie beim ersten Login ein, um die Konsistenz zu gewährleisten.",
         anonymous_id_mismatch_warning: "Sie haben sich zuvor mit einer anderen anonymen ID in dieses System eingeloggt. Bitte geben Sie die korrekte anonyme ID ein, um auf Ihr Dashboard zuzugreifen.",
         use_previous_id: "Vorherige ID verwenden",
         keep_new_id: "Neue ID behalten"
@@ -646,19 +646,13 @@ function setupAssignmentForm() {
                     const t = translations[currentLanguage];
                     
                     if (hintDiv && hintMessage) {
-                        hintMessage.textContent = `${t.previous_anonymous_id_found} ${dbAssignment.anonymous_id}`;
+                        // Don't show the specific anonymous ID - just inform user to use the same one
+                        hintMessage.textContent = t.previous_anonymous_id_found;
                         hintDiv.classList.remove('d-none');
                         
-                        // Show button to use previous ID
+                        // Don't show "Use Previous ID" button to protect privacy
                         if (usePreviousBtn) {
-                            usePreviousBtn.style.display = 'inline-block';
-                            usePreviousBtn.onclick = () => {
-                                if (anonymousIdInput) {
-                                    anonymousIdInput.value = dbAssignment.anonymous_id;
-                                    updateSubmitButton();
-                                    hintDiv.classList.add('d-none');
-                                }
-                            };
+                            usePreviousBtn.style.display = 'none';
                         }
                     }
                 } else {
