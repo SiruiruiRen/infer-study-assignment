@@ -761,18 +761,31 @@ function setupAssignmentForm() {
                         // Check if anonymous_id matches
                         if (dbAssignment.anonymous_id && 
                             dbAssignment.anonymous_id.toUpperCase() !== normalizedAnonymousId) {
-                            // Show warning about mismatch
-                            const warningDiv = document.getElementById('anonymous-id-warning');
-                            const warningMessage = document.getElementById('anonymous-id-warning-message');
-                            const t = translations[currentLanguage];
-                            
-                            if (warningDiv && warningMessage) {
-                                warningMessage.textContent = t.anonymous_id_mismatch_warning;
-                                warningDiv.classList.remove('d-none');
-                            }
+                        // Show warning about mismatch - DO NOT auto-redirect
+                        const warningDiv = document.getElementById('anonymous-id-warning');
+                        const warningMessage = document.getElementById('anonymous-id-warning-message');
+                        const t = translations[currentLanguage];
+                        
+                        if (warningDiv && warningMessage) {
+                            warningMessage.textContent = t.anonymous_id_mismatch_warning;
+                            warningDiv.classList.remove('d-none');
                         }
                         
-                        // Auto-redirect to correct site if already assigned (don't show group info)
+                        // Disable submit button - user must enter correct anonymous ID
+                        if (submitBtn) submitBtn.disabled = true;
+                        
+                        // Clear assignment message
+                        if (assignmentMessage) assignmentMessage.textContent = '';
+                        if (assignmentInfo) assignmentInfo.classList.add('d-none');
+                        
+                        // DO NOT redirect - user must enter correct anonymous ID
+                        return null; // Return null to prevent auto-redirect
+                    } else {
+                        // Hide warning if they match
+                        const warningDiv = document.getElementById('anonymous-id-warning');
+                        if (warningDiv) warningDiv.classList.add('d-none');
+                        
+                        // Auto-redirect to correct site if already assigned and IDs match (don't show group info)
                         if (dbAssignment.treatment_group) {
                             redirectToStudySite(
                                 dbAssignment.treatment_group,
@@ -782,14 +795,16 @@ function setupAssignmentForm() {
                             return dbAssignment;
                         }
                         
-                        // Show message that they're already assigned
+                        // Show message that they're already assigned (without revealing group)
                         if (assignmentMessage) {
                             const t = translations[currentLanguage];
                             assignmentMessage.textContent = t.already_assigned;
                         }
                         if (assignmentInfo) assignmentInfo.classList.remove('d-none');
+                        // Enable submit button
                         if (submitBtn) submitBtn.disabled = false;
                         return dbAssignment;
+                    }
                     }
                 }
             }
