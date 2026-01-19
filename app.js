@@ -52,7 +52,7 @@ const translations = {
         assigned_to: "Redirecting to your study site...",
         redirecting: "Redirecting to your study site...",
         previous_anonymous_id_found: "We found a previous anonymous ID for this student ID:",
-        anonymous_id_mismatch_warning: "The anonymous ID you entered doesn't match the one we have on record. We'll update it with your new entry.",
+        anonymous_id_mismatch_warning: "You have previously logged into this system with a different anonymous ID. Please enter the correct anonymous ID to access your dashboard.",
         use_previous_id: "Use Previous ID",
         keep_new_id: "Keep New ID"
     },
@@ -87,7 +87,7 @@ const translations = {
         assigned_to: "Weiterleitung zu Ihrer Studienseite...",
         redirecting: "Weiterleitung zu Ihrer Studienseite...",
         previous_anonymous_id_found: "Wir haben eine vorherige anonyme ID für diese Studenten-ID gefunden:",
-        anonymous_id_mismatch_warning: "Die eingegebene anonyme ID stimmt nicht mit der in unserer Datenbank überein. Wir aktualisieren sie mit Ihrem neuen Eintrag.",
+        anonymous_id_mismatch_warning: "Sie haben sich zuvor mit einer anderen anonymen ID in dieses System eingeloggt. Bitte geben Sie die korrekte anonyme ID ein, um auf Ihr Dashboard zuzugreifen.",
         use_previous_id: "Vorherige ID verwenden",
         keep_new_id: "Neue ID behalten"
     }
@@ -699,7 +699,7 @@ function setupAssignmentForm() {
                         // Check if anonymous_id matches
                         if (dbAssignment.anonymous_id && 
                             dbAssignment.anonymous_id.toUpperCase() !== normalizedAnonymousId) {
-                            // Show warning about mismatch
+                            // Show warning about mismatch - DO NOT auto-redirect
                             const warningDiv = document.getElementById('anonymous-id-warning');
                             const warningMessage = document.getElementById('anonymous-id-warning-message');
                             const t = translations[currentLanguage];
@@ -708,31 +708,41 @@ function setupAssignmentForm() {
                                 warningMessage.textContent = t.anonymous_id_mismatch_warning;
                                 warningDiv.classList.remove('d-none');
                             }
+                            
+                            // Disable submit button - user must enter correct anonymous ID
+                            if (submitBtn) submitBtn.disabled = true;
+                            
+                            // Clear assignment message
+                            if (assignmentMessage) assignmentMessage.textContent = '';
+                            if (assignmentInfo) assignmentInfo.classList.add('d-none');
+                            
+                            // DO NOT redirect - user must enter correct anonymous ID
+                            return null; // Return null to prevent auto-redirect
                         } else {
                             // Hide warning if they match
                             const warningDiv = document.getElementById('anonymous-id-warning');
                             if (warningDiv) warningDiv.classList.add('d-none');
-                        }
-                        
-                        // Auto-redirect to correct site if already assigned (don't show group info)
-                        if (dbAssignment.treatment_group) {
-                            redirectToStudySite(
-                                dbAssignment.treatment_group,
-                                dbAssignment.student_id || normalizedId,
-                                dbAssignment.anonymous_id || normalizedAnonymousId
-                            );
+                            
+                            // Auto-redirect to correct site if already assigned and IDs match (don't show group info)
+                            if (dbAssignment.treatment_group) {
+                                redirectToStudySite(
+                                    dbAssignment.treatment_group,
+                                    dbAssignment.student_id || normalizedId,
+                                    dbAssignment.anonymous_id || normalizedAnonymousId
+                                );
+                                return dbAssignment;
+                            }
+                            
+                            // Show message that they're already assigned (without revealing group)
+                            if (assignmentMessage) {
+                                const t = translations[currentLanguage];
+                                assignmentMessage.textContent = t.already_assigned;
+                            }
+                            if (assignmentInfo) assignmentInfo.classList.remove('d-none');
+                            // Enable submit button
+                            if (submitBtn) submitBtn.disabled = false;
                             return dbAssignment;
                         }
-                        
-                        // Show message that they're already assigned (without revealing group)
-                        if (assignmentMessage) {
-                            const t = translations[currentLanguage];
-                            assignmentMessage.textContent = t.already_assigned;
-                        }
-                        if (assignmentInfo) assignmentInfo.classList.remove('d-none');
-                        // Enable submit button
-                        if (submitBtn) submitBtn.disabled = false;
-                        return dbAssignment;
                     }
                 } else {
                     // Check database directly
