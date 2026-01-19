@@ -980,7 +980,8 @@ function switchLanguage(lang) {
                         
                         if (dbAssignment && dbAssignment.anonymous_id) {
                             const t = translations[currentLanguage];
-                            hintMessage.textContent = `${t.previous_anonymous_id_found} ${dbAssignment.anonymous_id}`;
+                            // Don't show the specific anonymous ID - just inform user to use the same one
+                            hintMessage.textContent = t.previous_anonymous_id_found;
                         }
                     }
                 };
