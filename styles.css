@@ -837,15 +837,6 @@ textarea {
   color: #166534;
 }
 
-.alert-success::before {
-  content: '✓';
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.4rem;
-  font-weight: bold;
-}
 
 .alert-success .btn-close {
   color: #2e7d32;
@@ -856,30 +847,12 @@ textarea {
   color: #92400e;
 }
 
-.alert-warning::before {
-  content: '!';
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.4rem;
-  font-weight: bold;
-}
 
 .alert-danger {
   background: linear-gradient(135deg, #fee2e2, #fecaca);
   color: #991b1b;
 }
 
-.alert-danger::before {
-  content: '✕';
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.4rem;
-  font-weight: bold;
-}
 
 .alert-info {
   background-color: rgba(33, 150, 243, 0.07);
@@ -887,15 +860,6 @@ textarea {
   color: #0277bd;
 }
 
-.alert-info::before {
-  content: 'ℹ';
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.4rem;
-  font-weight: bold;
-}
 
 .alert-dismissible {
   padding-right: 3rem;
