@@ -323,12 +323,12 @@ async function getOrCreateAssignment(studentId, anonymousId) {
             } else {
                 // Database query succeeded but no record found - this shouldn't happen
                 // But if localStorage has a record, trust it (might be from another session)
-                console.warn('localStorage has assignment but database query returned no record. Using localStorage assignment.');
+                // localStorage has assignment but database query returned no record. Using localStorage assignment.
                 // Still try to check database one more time below
             }
         } catch (error) {
             // Database query failed (e.g., 406 error) - trust localStorage if it exists
-            console.warn('Database query failed, but localStorage has assignment. Using localStorage assignment:', error);
+            // Database query failed, but localStorage has assignment. Using localStorage assignment.
             // Return stored assignment to prevent creating duplicate
             return stored;
         }
@@ -343,8 +343,7 @@ async function getOrCreateAssignment(studentId, anonymousId) {
         // If we have localStorage assignment, use it even if database query fails
         // This prevents creating duplicate assignments when database is temporarily unavailable
         if (stored && stored.treatment_group) {
-            console.log('Database query failed, but localStorage has assignment. Using localStorage assignment to prevent duplicate.');
-            console.log('localStorage assignment:', stored);
+                // Database query failed, but localStorage has assignment. Using localStorage assignment to prevent duplicate.
             // Return stored assignment immediately - don't try to create new one
             return stored;
         }
@@ -354,7 +353,7 @@ async function getOrCreateAssignment(studentId, anonymousId) {
     }
     
     if (existing) {
-        console.log('Found existing assignment in database:', existing);
+        // Found existing assignment in database (don't log to avoid exposing group assignment)
         
         // If anonymous_id changed, update it in the database (assignment stays the same)
         if (existing.anonymous_id !== normalizedAnonymousId) {
@@ -386,8 +385,7 @@ async function getOrCreateAssignment(studentId, anonymousId) {
     // Only create new assignment if we don't have one in localStorage
     // This prevents creating duplicate assignments when database query fails but localStorage has record
     if (stored && stored.treatment_group) {
-        console.warn('WARNING: localStorage has assignment but database query returned no record. This should not happen.');
-        console.warn('Using localStorage assignment to prevent duplicate:', stored);
+                // WARNING: localStorage has assignment but database query returned no record. Using localStorage assignment to prevent duplicate.
         return stored;
     }
     
@@ -421,7 +419,7 @@ async function getOrCreateAssignment(studentId, anonymousId) {
                     console.error('Error fetching existing assignment after duplicate error:', fetchError);
                     // If fetch also fails, check localStorage
                     if (stored && stored.treatment_group) {
-                        console.log('Using localStorage assignment after duplicate error');
+                        // Using localStorage assignment after duplicate error
                         return stored;
                     }
                 }
@@ -429,7 +427,7 @@ async function getOrCreateAssignment(studentId, anonymousId) {
             console.error('Error creating assignment:', error);
             // If we have localStorage, use it as fallback
             if (stored && stored.treatment_group) {
-                console.log('Using localStorage assignment due to insert error');
+                // Using localStorage assignment due to insert error
                 return stored;
             }
             throw error;  // Re-throw if no fallback available
@@ -443,7 +441,7 @@ async function getOrCreateAssignment(studentId, anonymousId) {
         console.error('Error in getOrCreateAssignment:', error);
         // Last resort: if we have localStorage assignment, use it
         if (stored && stored.treatment_group) {
-            console.log('Using localStorage assignment as last resort due to error');
+            // Using localStorage assignment as last resort due to error
             return stored;
         }
         throw error;  // Re-throw if no fallback available
@@ -838,7 +836,7 @@ function setupAssignmentForm() {
                     console.error('Error in getOrCreateAssignment:', error);
                     // If database operation failed but we have localStorage assignment, use it
                     if (stored && stored.treatment_group) {
-                        console.log('Database operation failed, using localStorage assignment:', stored);
+                        // Database operation failed, using localStorage assignment
                         assignment = stored;
                         showAlert('Using your previous assignment. If this is incorrect, please contact support.', 'info');
                     } else {
